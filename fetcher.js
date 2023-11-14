@@ -5,14 +5,41 @@ const localFilePath = process.argv[3];
 
 const request = require('request');
 const fs = require('fs');
+const { constants } = require('buffer');
+const readline = require('readline');
 
-const fetcher = function(URL, localFilePath) {
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+
+const fetcher = function (URL, localFilePath) {
   request(URL, (error, response, body) => {
-    fs.writeFile(localFilePath, body, (err) => {
+    if (error) {
+      return console.log("error found", error);
+    }
+    fs.access(localFilePath, constants.F_OK, (err) => {
       if (err) {
-        throw err;
-      } console.log(`Downloaded and saved ${body.length} bytes to ${localFilePath}`);
+        fs.writeFile(localFilePath, body, (err) => {
+          if (err) {
+            throw err;
+          } console.log(`Downloaded and saved ${body.length} bytes to ${localFilePath}`);
+          rl.close();
+        });
+      } else rl.question("This file already exists, do you want to overwrite", (answer) => {
+        if (answer === "y") {
+          fs.writeFile(localFilePath, body, (err) => {
+            if (err) {
+              throw err;
+            } console.log(`Downloaded and saved ${body.length} bytes to ${localFilePath}`);
+            rl.close();
+          });
+        } else rl.close();
+      });
     });
+
   });
 };
 
